@@ -7,7 +7,7 @@ import numpy as np
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QSpinBox, 
                             QDoubleSpinBox, QGroupBox, QGridLayout, QStatusBar,
-                            QComboBox)
+                            QComboBox, QFileDialog)
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
 
 from ..core.city import City
@@ -45,34 +45,31 @@ class TSPWindow(QMainWindow):
         self.init_ui()
     
     def init_ui(self):
-        """Initialize the user interface"""
-        # Central widget
+        """
+        Initialize the user interface
+        """
+        
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
-        # Main layout
+    
         main_layout = QVBoxLayout(central_widget)
         
-        # Group for algorithm parameters
         param_group = QGroupBox("Algorithm Parameters")
         param_layout = QGridLayout()
         param_group.setLayout(param_layout)
         
-        # Number of cities
         param_layout.addWidget(QLabel("Number of cities:"), 0, 0)
         self.city_count = QSpinBox()
         self.city_count.setRange(5, 200)
         self.city_count.setValue(30)
         param_layout.addWidget(self.city_count, 0, 1)
         
-        # Population size
         param_layout.addWidget(QLabel("Population size:"), 0, 2)
         self.population_size = QSpinBox()
         self.population_size.setRange(10, 1000)
         self.population_size.setValue(100)
         param_layout.addWidget(self.population_size, 0, 3)
         
-        # Mutation rate
         param_layout.addWidget(QLabel("Mutation rate:"), 0, 4)
         self.mutation_rate = QDoubleSpinBox()
         self.mutation_rate.setRange(0.001, 0.5)
@@ -81,34 +78,34 @@ class TSPWindow(QMainWindow):
         self.mutation_rate.setDecimals(3)
         param_layout.addWidget(self.mutation_rate, 0, 5)
         
-        # Elite size
         param_layout.addWidget(QLabel("Elite size:"), 1, 0)
         self.elite_size = QSpinBox()
         self.elite_size.setRange(1, 100)
         self.elite_size.setValue(20)
         param_layout.addWidget(self.elite_size, 1, 1)
-        
-        # Tournament size
+      
         param_layout.addWidget(QLabel("Tournament size:"), 1, 2)
         self.tournament_size = QSpinBox()
         self.tournament_size.setRange(2, 20)
         self.tournament_size.setValue(5)
         param_layout.addWidget(self.tournament_size, 1, 3)
         
-        # Crossover type
+
         param_layout.addWidget(QLabel("Crossover type:"), 1, 4)
         self.crossover_type = QComboBox()
         self.crossover_type.addItems(["ordered", "cycle"])
         param_layout.addWidget(self.crossover_type, 1, 5)
         
-        # Mutation type
         param_layout.addWidget(QLabel("Mutation type:"), 2, 0)
         self.mutation_type = QComboBox()
         self.mutation_type.addItems(["swap", "insertion", "inversion"])
         param_layout.addWidget(self.mutation_type, 2, 1)
         
-        # Control buttons
         button_layout = QHBoxLayout()
+        
+        self.import_button = QPushButton("Import TSPLIB")
+        self.import_button.clicked.connect(self.import_tsplib)
+        button_layout.addWidget(self.import_button)
         
         self.generate_button = QPushButton("Generate Cities")
         self.generate_button.clicked.connect(self.generate_cities)
@@ -123,28 +120,24 @@ class TSPWindow(QMainWindow):
         self.step_button.clicked.connect(self.run_step)
         self.step_button.setEnabled(False)
         button_layout.addWidget(self.step_button)
-        
-        # Group for information
+    
         info_group = QGroupBox("Information")
         info_layout = QHBoxLayout()
         info_group.setLayout(info_layout)
         
-        # Current generation
         info_layout.addWidget(QLabel("Generation:"))
         self.generation_label = QLabel("0")
         info_layout.addWidget(self.generation_label)
         
-        # Best distance
         info_layout.addWidget(QLabel("Best distance:"))
         self.distance_label = QLabel("N/A")
         info_layout.addWidget(self.distance_label)
         
         info_layout.addStretch()
         
-        # Matplotlib canvas
         self.canvas = MatplotlibCanvas(self, width=10, height=6)
         
-        # Status bar
+
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage("Ready")
@@ -163,17 +156,14 @@ class TSPWindow(QMainWindow):
                 n_cities = 3  # Minimum 3 cities for a valid problem
                 self.city_count.setValue(3)
                 
-            # Stop the algorithm if running
             self.stop_algorithm()
             
-            # Generate random cities in a 2D space
             self.cities = []
             for i in range(n_cities):
                 x = random.uniform(0, 100)
                 y = random.uniform(0, 100)
                 self.cities.append(City(x, y, f"City-{i+1}"))
             
-            # Initialize the genetic algorithm
             pop_size = self.population_size.value()
             elite = self.elite_size.value()
             mutation = self.mutation_rate.value()
@@ -191,18 +181,14 @@ class TSPWindow(QMainWindow):
                 mutation_type=mutation_type
             )
             
-            # Create the initial population
             self.genetic_algo.create_initial_population()
             
-            # Update plots
             self.update_plots()
             
-            # Enable buttons
             self.start_button.setEnabled(True)
             self.start_button.setText("Start Algorithm")
             self.step_button.setEnabled(True)
             
-            # Reset labels
             self.generation_label.setText("0")
             self.distance_label.setText("N/A")
             
@@ -210,6 +196,76 @@ class TSPWindow(QMainWindow):
             
         except Exception as e:
             self.statusBar.showMessage(f"Error: {str(e)}")
+    
+    def import_tsplib(self):
+        """Import a TSPLIB instance"""
+        try:
+            filename, _ = QFileDialog.getOpenFileName(
+                self,
+                "Open TSPLIB File",
+                "",
+                "TSPLIB Files (*.tsp);;All Files (*)"
+            )
+            
+            if filename:
+                # Stop the algorithm if running
+                self.stop_algorithm()
+                
+                # Read the TSPLIB file
+                self.cities = []
+                with open(filename, 'r') as file:
+                    dimension = 0
+                    coords_started = False
+                    
+                    for line in file:
+                        line = line.strip()
+                        if line.startswith("DIMENSION"):
+                            dimension = int(line.split(":")[-1])
+                        elif line == "NODE_COORD_SECTION":
+                            coords_started = True
+                        elif coords_started and line != "EOF":
+                            # Parse coordinates
+                            parts = line.split()
+                            if len(parts) >= 3:
+                                idx = int(parts[0])
+                                x = float(parts[1])
+                                y = float(parts[2])
+                                self.cities.append(City(x, y, f"City-{idx}"))
+                
+                self.city_count.setValue(len(self.cities))
+                
+                pop_size = self.population_size.value()
+                elite = self.elite_size.value()
+                mutation = self.mutation_rate.value()
+                tournament = self.tournament_size.value()
+                crossover = self.crossover_type.currentText()
+                mutation_type = self.mutation_type.currentText()
+                
+                self.genetic_algo = GeneticAlgorithm(
+                    self.cities, 
+                    population_size=pop_size,
+                    elite_size=elite,
+                    mutation_rate=mutation,
+                    tournament_size=tournament,
+                    crossover_type=crossover,
+                    mutation_type=mutation_type
+                )
+                
+                self.genetic_algo.create_initial_population()
+                self.update_plots()
+                
+                self.start_button.setEnabled(True)
+                self.start_button.setText("Start Algorithm")
+                self.step_button.setEnabled(True)
+                
+                # Reset labels
+                self.generation_label.setText("0")
+                self.distance_label.setText("N/A")
+                
+                self.statusBar.showMessage(f"Imported {len(self.cities)} cities from TSPLIB file")
+            
+        except Exception as e:
+            self.statusBar.showMessage(f"Error importing TSPLIB file: {str(e)}")
     
     def toggle_algorithm(self):
         """Start or stop the genetic algorithm"""
@@ -249,12 +305,10 @@ class TSPWindow(QMainWindow):
     def run_algorithm(self):
         """Run the genetic algorithm until stopped"""
         while self.is_running:
-            # Execute one generation
             best_route, best_distance, generation = self.genetic_algo.run_generation()
-            
-            # Emit a signal to update the UI
+            # signal to update the UI
             self.signal_emitter.generation_signal.emit(generation, best_distance)
-            # Update plots periodically
+            # Update plots depending on the number of generations
             if generation % 5 == 0 or generation < 10:
                 self.signal_emitter.update_signal.emit()
             
@@ -264,14 +318,10 @@ class TSPWindow(QMainWindow):
     def run_step(self):
         """Execute one step (generation) of the genetic algorithm"""
         if self.genetic_algo:
-            # Execute one generation
             best_route, best_distance, generation = self.genetic_algo.run_generation()
-            
-            # Update labels
             self.generation_label.setText(str(generation))
             self.distance_label.setText(f"{best_distance:.2f}")
             
-            # Update plots
             self.update_plots()
             
             self.statusBar.showMessage(f"Generation {generation} completed")
@@ -286,11 +336,9 @@ class TSPWindow(QMainWindow):
         if not self.genetic_algo:
             return
         
-        # Clear plots
         self.canvas.axes1.clear()
         self.canvas.axes2.clear()
         
-        # Configure titles and legends
         self.canvas.axes1.set_title("Traveling Salesman Problem")
         self.canvas.axes1.set_xlabel("X")
         self.canvas.axes1.set_ylabel("Y")
@@ -301,26 +349,21 @@ class TSPWindow(QMainWindow):
         self.canvas.axes2.set_ylabel("Distance")
         self.canvas.axes2.grid(True)
         
-        # Plot cities
         x = [city.x for city in self.cities]
         y = [city.y for city in self.cities]
         self.canvas.axes1.scatter(x, y, c='blue', marker='o')
         
-        # Add city labels
         for city in self.cities:
             self.canvas.axes1.annotate(city.name, (city.x, city.y), fontsize=8)
         
-        # Plot the best route if it exists
-        if self.genetic_algo.best_route:
+        # plot best route if available
+        if self.genetic_algo.best_route:  
             best_route = self.genetic_algo.best_route
-            
-            # Plot connections between cities
             for i in range(len(best_route)):
                 city1 = best_route[i]
                 city2 = best_route[(i + 1) % len(best_route)]
                 self.canvas.axes1.plot([city1.x, city2.x], [city1.y, city2.y], 'r-', alpha=0.7)
         
-        # Plot distance evolution
         history = self.genetic_algo.history
         if history:
             generations = list(range(len(history)))

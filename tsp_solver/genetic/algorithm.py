@@ -86,7 +86,7 @@ class GeneticAlgorithm:
             
             if distance < self.best_distance:
                 self.best_distance = distance
-                self.best_route = route.copy()
+                self.best_route = route.copy()  # On garde une copie du meilleur chemin
         
         self.history.append(self.best_distance)
         
@@ -132,11 +132,8 @@ class GeneticAlgorithm:
         
         while len(next_generation) < self.population_size:
             parent1, parent2 = random.sample(selected_routes, 2)
-            
             child = self.crossover(parent1, parent2)
-            
-            child = self.mutate(child)
-            
+            child = self.mutate(child) 
             next_generation.append(child)
         
         self.population = next_generation

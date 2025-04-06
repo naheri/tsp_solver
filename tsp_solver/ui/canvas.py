@@ -16,8 +16,8 @@ class MatplotlibCanvas(FigureCanvas):
             dpi (int): Canvas resolution
         """
         self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes1 = self.fig.add_subplot(121)  # display cities and the path
-        self.axes2 = self.fig.add_subplot(122)  # display the evolution of the distance
+        self.axes1 = self.fig.add_subplot(121)  # cities and the path
+        self.axes2 = self.fig.add_subplot(122)  # the evolution of the distance
         
         super(MatplotlibCanvas, self).__init__(self.fig)
         
