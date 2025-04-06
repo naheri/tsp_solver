@@ -1,0 +1,27 @@
+tsp-solver/
+│
+├── tsp_solver/                  # Package principal
+│   ├── __init__.py
+│   ├── core/                    # Module pour les classes de base
+│   │   ├── __init__.py
+│   │   ├── city.py              # Classe City
+│   │   └── route.py             # Classe Route (facultatif)
+│   │
+│   ├── genetic/                 # Module pour l'algorithme génétique
+│   │   ├── __init__.py
+│   │   ├── algorithm.py         # Classe GeneticAlgorithm
+│   │   ├── operators/           # Sous-module pour les opérateurs
+│   │   │   ├── __init__.py
+│   │   │   ├── selection.py     # Opérateurs de sélection
+│   │   │   ├── crossover.py     # Opérateurs de croisement
+│   │   │   └── mutation.py      # Opérateurs de mutation
+│   │
+│   └── ui/                      # Module pour l'interface utilisateur
+│       ├── __init__.py
+│       ├── main_window.py       # Fenêtre principale de l'application
+│       └── canvas.py            # Canvas Matplotlib
+│
+├── main.py                      # Point d'entrée du programme
+├── setup.py                     # Configuration pour l'installation du package
+├── requirements.txt             # Dépendances du projet
+└── README.md                    # Documentation du projet
