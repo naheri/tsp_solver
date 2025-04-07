@@ -1,4 +1,3 @@
-# tsp_solver/genetic/operators/crossover.py
 import random
 
 def ordered_crossover(parent1, parent2):
@@ -18,7 +17,6 @@ def ordered_crossover(parent1, parent2):
     # Randomly choose two cut points
     start_idx, end_idx = sorted(random.sample(range(len(parent1)), 2))
     
-    # Copy the section between the cut points from parent1
     for i in range(start_idx, end_idx + 1):
         child[i] = parent1[i]
     
@@ -48,16 +46,14 @@ def cycle_crossover(parent1, parent2):
     size = len(parent1)
     child = [None] * size
     
-    # Dictionaries for quick position lookup
     p1_dict = {parent1[i]: i for i in range(size)}
     p2_dict = {parent2[i]: i for i in range(size)}
     
-    # Start with the first element of parent1
     start_pos = 0
     current_pos = 0
     current_value = parent1[current_pos]
     
-    # Mark the cycle
+    # cycle
     while True:
         child[current_pos] = parent1[current_pos]
         current_pos = p1_dict[parent2[current_pos]]
@@ -65,7 +61,6 @@ def cycle_crossover(parent1, parent2):
         if current_pos == start_pos:
             break
     
-    # Fill the remaining positions with parent2
     for i in range(size):
         if child[i] is None:
             child[i] = parent2[i]

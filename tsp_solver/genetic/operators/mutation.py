@@ -1,4 +1,3 @@
-# tsp_solver/genetic/operators/mutation.py
 import random
 
 def swap_mutation(route, mutation_rate):
@@ -14,11 +13,8 @@ def swap_mutation(route, mutation_rate):
     """
     for i in range(len(route)):
         if random.random() < mutation_rate:
-            # Randomly choose another city for the swap
             j = random.randint(0, len(route) - 1)
-            # Avoid swapping a city with itself
             if i != j:
-                # Swap the cities
                 route[i], route[j] = route[j], route[i]
     return route
 
@@ -34,14 +30,12 @@ def insertion_mutation(route, mutation_rate):
         list: Mutated route
     """
     if random.random() < mutation_rate:
-        # Choose a random city and a random insertion position
-        idx1 = random.randint(0, len(route) - 1)
-        idx2 = random.randint(0, len(route) - 1)
+        city = random.randint(0, len(route) - 1)
+        insertion_pos = random.randint(0, len(route) - 1)
         
-        # Avoid inserting at the same location
-        if idx1 != idx2:
-            city = route.pop(idx1)
-            route.insert(idx2, city)
+        if city != insertion_pos:
+            city = route.pop(city)
+            route.insert(insertion_pos, city)
     
     return route
 
@@ -57,10 +51,7 @@ def inversion_mutation(route, mutation_rate):
         list: Mutated route
     """
     if random.random() < mutation_rate:
-        # Choose two random positions
         i, j = sorted(random.sample(range(len(route)), 2))
-        
-        # Reverse the order of cities between these positions
         route[i:j+1] = reversed(route[i:j+1])
     
     return route

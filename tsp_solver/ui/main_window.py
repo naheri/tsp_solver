@@ -7,7 +7,7 @@ import numpy as np
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QSpinBox, 
                             QDoubleSpinBox, QGroupBox, QGridLayout, QStatusBar,
-                            QComboBox, QFileDialog)
+                            QComboBox, QFileDialog, QCheckBox)
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
 
 from ..core.city import City
@@ -26,17 +26,16 @@ class TSPWindow(QMainWindow):
         """Initialize the main window"""
         super().__init__()
         
-        # Window configuration
+
         self.setWindowTitle("Genetic Algorithm - Traveling Salesman Problem")
         self.setGeometry(100, 100, 1200, 800)
         
-        # Variables for the algorithm
         self.cities = []
         self.genetic_algo = None
         self.is_running = False
         self.thread = None
         
-        # Create signals for thread communication
+        # signals for thread communication
         self.signal_emitter = SignalEmitter()
         self.signal_emitter.update_signal.connect(self.update_plots)
         self.signal_emitter.generation_signal.connect(self.update_generation_info)
@@ -100,6 +99,24 @@ class TSPWindow(QMainWindow):
         self.mutation_type = QComboBox()
         self.mutation_type.addItems(["swap", "insertion", "inversion"])
         param_layout.addWidget(self.mutation_type, 2, 1)
+        
+        # Ajout des contrôles pour le critère d'arrêt
+        self.use_stopping = QCheckBox("Use stopping criterion")
+        param_layout.addWidget(self.use_stopping, 2, 2)
+        
+        param_layout.addWidget(QLabel("Min. improvement:"), 2, 3)
+        self.improvement_threshold = QDoubleSpinBox()
+        self.improvement_threshold.setRange(0.0001, 0.01)
+        self.improvement_threshold.setSingleStep(0.0001)
+        self.improvement_threshold.setValue(0.001)
+        self.improvement_threshold.setDecimals(4)
+        param_layout.addWidget(self.improvement_threshold, 2, 4)
+        
+        param_layout.addWidget(QLabel("Generations to check:"), 2, 5)
+        self.generations_check = QSpinBox()
+        self.generations_check.setRange(10, 100)
+        self.generations_check.setValue(20)
+        param_layout.addWidget(self.generations_check, 2, 6)
         
         button_layout = QHBoxLayout()
         
@@ -178,7 +195,10 @@ class TSPWindow(QMainWindow):
                 mutation_rate=mutation,
                 tournament_size=tournament,
                 crossover_type=crossover,
-                mutation_type=mutation_type
+                mutation_type=mutation_type,
+                use_stopping_criterion=self.use_stopping.isChecked(),
+                improvement_threshold=self.improvement_threshold.value(),
+                generations_without_improvement=self.generations_check.value()
             )
             
             self.genetic_algo.create_initial_population()
@@ -248,7 +268,10 @@ class TSPWindow(QMainWindow):
                     mutation_rate=mutation,
                     tournament_size=tournament,
                     crossover_type=crossover,
-                    mutation_type=mutation_type
+                    mutation_type=mutation_type,
+                    use_stopping_criterion=self.use_stopping.isChecked(),
+                    improvement_threshold=self.improvement_threshold.value(),
+                    generations_without_improvement=self.generations_check.value()
                 )
                 
                 self.genetic_algo.create_initial_population()
@@ -282,7 +305,6 @@ class TSPWindow(QMainWindow):
             self.generate_button.setEnabled(False)
             self.step_button.setEnabled(False)
             
-            # Run the algorithm in a thread to avoid blocking the UI
             self.thread = threading.Thread(target=self.run_algorithm)
             self.thread.daemon = True
             self.thread.start()
@@ -305,24 +327,30 @@ class TSPWindow(QMainWindow):
     def run_algorithm(self):
         """Run the genetic algorithm until stopped"""
         while self.is_running:
-            best_route, best_distance, generation = self.genetic_algo.run_generation()
-            # signal to update the UI
+            best_route, best_distance, generation, should_stop = self.genetic_algo.run_generation()
             self.signal_emitter.generation_signal.emit(generation, best_distance)
-            # Update plots depending on the number of generations
+            
             if generation % 5 == 0 or generation < 10:
                 self.signal_emitter.update_signal.emit()
             
-            # Small delay to avoid overloading the UI
+            if should_stop:
+                self.stop_algorithm()
+                self.statusBar.showMessage(f"Algorithm stopped: no significant improvement after {self.generations_check.value()} generations")
+                break
+            
             time.sleep(0.05)
     
     def run_step(self):
         """Execute one step (generation) of the genetic algorithm"""
         if self.genetic_algo:
-            best_route, best_distance, generation = self.genetic_algo.run_generation()
+            best_route, best_distance, generation, should_stop = self.genetic_algo.run_generation()
             self.generation_label.setText(str(generation))
             self.distance_label.setText(f"{best_distance:.2f}")
             
             self.update_plots()
+            
+            if should_stop:
+                self.statusBar.showMessage(f"Suggested to stop: no significant improvement after {self.generations_check.value()} generations")
             
             self.statusBar.showMessage(f"Generation {generation} completed")
     

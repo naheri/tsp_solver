@@ -1,4 +1,3 @@
-# tsp_solver/genetic/algorithm.py
 import random
 import numpy as np
 from ..genetic.operators.selection import tournament_selection, elitism_selection
@@ -10,18 +9,12 @@ class GeneticAlgorithm:
     
     def __init__(self, cities, population_size=100, elite_size=20, 
                  mutation_rate=0.01, tournament_size=5,
-                 crossover_type="ordered", mutation_type="swap"):
+                 crossover_type="ordered", mutation_type="swap",
+                 use_stopping_criterion=False, improvement_threshold=0.001,
+                 generations_without_improvement=20):
         """
         Initialize the genetic algorithm.
-        
-        Args:
-            cities (list): List of cities to visit
-            population_size (int): Population size
-            elite_size (int): Number of elites to retain
-            mutation_rate (float): Mutation rate
-            tournament_size (int): Tournament size for selection
-            crossover_type (str): Type of crossover to use ('ordered' or 'cycle')
-            mutation_type (str): Type of mutation to use ('swap', 'insertion', or 'inversion')
+    
         """
         self.cities = cities
         self.population_size = population_size
@@ -30,6 +23,11 @@ class GeneticAlgorithm:
         self.tournament_size = tournament_size
         self.crossover_type = crossover_type
         self.mutation_type = mutation_type
+        
+        self.use_stopping_criterion = use_stopping_criterion
+        self.improvement_threshold = improvement_threshold
+        self.generations_without_improvement = generations_without_improvement
+        self.last_best_distances = []
         
         self.population = []
         self.best_route = None
@@ -49,6 +47,7 @@ class GeneticAlgorithm:
         self.best_distance = float('inf')
         self.generation = 0
         self.history = []
+        self.last_best_distances = []
         
         return self.population
     
@@ -141,10 +140,29 @@ class GeneticAlgorithm:
         
         return self.population
     
+    def should_stop(self):
+        """Check if the algorithm should stop based on improvement criterion"""
+        if not self.use_stopping_criterion:
+            return False
+            
+        if len(self.last_best_distances) < self.generations_without_improvement:
+            self.last_best_distances.append(self.best_distance)
+            return False
+            
+        self.last_best_distances.append(self.best_distance)
+        self.last_best_distances.pop(0)
+        
+        oldest = self.last_best_distances[0]
+        newest = self.last_best_distances[-1]
+        
+        relative_improvement = (oldest - newest) / oldest
+        return relative_improvement < self.improvement_threshold
+    
     def run_generation(self):
         """Execute a complete generation of the genetic algorithm"""
         fitness_results = self.evaluate_population()
         selected_routes = self.select_parents(fitness_results)
         self.create_next_generation(selected_routes)
         
-        return self.best_route, self.best_distance, self.generation
+        should_stop = self.should_stop()
+        return self.best_route, self.best_distance, self.generation, should_stop

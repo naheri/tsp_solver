@@ -1,4 +1,3 @@
-# tsp_solver/genetic/operators/selection.py
 import random
 
 def tournament_selection(population, fitness_results, tournament_size):
@@ -13,14 +12,10 @@ def tournament_selection(population, fitness_results, tournament_size):
     Returns:
         int: Index of the selected individual
     """
-    # Randomly select tournament participants
     tournament_candidates = random.sample(range(len(population)), tournament_size)
-    
-    # Find the best participant in the tournament
     tournament_fitness = [(i, fitness_results[i]) for i in tournament_candidates]
     tournament_fitness.sort(key=lambda x: x[1], reverse=True)
     
-    # Return the tournament winner
     return tournament_fitness[0][0]
 
 def elitism_selection(fitness_results, elite_size):
@@ -34,9 +29,7 @@ def elitism_selection(fitness_results, elite_size):
     Returns:
         list: Indices of selected elites
     """
-    # Sort individuals by descending fitness
     sorted_fitness = [(i, fitness_results[i]) for i in range(len(fitness_results))]
     sorted_fitness.sort(key=lambda x: x[1], reverse=True)
     
-    # Return indices of the n best individuals
     return [sorted_fitness[i][0] for i in range(min(elite_size, len(sorted_fitness)))]

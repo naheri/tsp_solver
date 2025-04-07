@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# main.py
 """
 Traveling Salesman Problem (TSP) with Genetic Algorithm
 -------------------------------------------------------------------
